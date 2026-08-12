@@ -66,6 +66,7 @@ class SpeechListenOptions {
   final Duration? pauseFor;
   final Duration? listenFor;
   final String? localeId;
+  final List<String> contextualStrings;
 
   SpeechListenOptions({
     /// If true the listen session will automatically be canceled on a permanent error.
@@ -113,6 +114,13 @@ class SpeechListenOptions {
     /// The locale to use for the listen session, if null the system default
     /// locale will be used. This is only supported on iOS and Android.
     this.localeId = null,
+
+    /// Hints the recognizer towards these words/phrases (e.g. the expected
+    /// answer), improving accuracy for uncommon vocabulary. Only supported on
+    /// iOS (`SFSpeechAudioBufferRecognitionRequest.contextualStrings`) and
+    /// Android 13+ (`RecognizerIntent.EXTRA_BIASING_STRINGS`); ignored
+    /// elsewhere.
+    this.contextualStrings = const [],
   });
 
   SpeechListenOptions copyWith({
@@ -126,6 +134,7 @@ class SpeechListenOptions {
     Duration? pauseFor,
     Duration? listenFor,
     String? localeId,
+    List<String>? contextualStrings,
   }) {
     return SpeechListenOptions(
         cancelOnError: cancelOnError ?? this.cancelOnError,
@@ -137,7 +146,8 @@ class SpeechListenOptions {
         enableHapticFeedback: enableHapticFeedback ?? this.enableHapticFeedback,
         pauseFor: pauseFor ?? this.pauseFor,
         listenFor: listenFor ?? this.listenFor,
-        localeId: localeId ?? this.localeId);
+        localeId: localeId ?? this.localeId,
+        contextualStrings: contextualStrings ?? this.contextualStrings);
   }
 }
 

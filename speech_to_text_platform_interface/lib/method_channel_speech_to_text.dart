@@ -113,6 +113,7 @@ class MethodChannelSpeechToText extends SpeechToTextPlatform {
       "autoPunctuation": options?.autoPunctuation ?? false,
       "pauseFor": options?.pauseFor?.inMilliseconds ?? null,
       "listenFor": options?.listenFor?.inMilliseconds ?? null,
+      "contextualStrings": options?.contextualStrings ?? const <String>[],
     };
     if (null != (localeId ?? options?.localeId)) {
       listenParams["localeId"] = (localeId ?? options?.localeId);

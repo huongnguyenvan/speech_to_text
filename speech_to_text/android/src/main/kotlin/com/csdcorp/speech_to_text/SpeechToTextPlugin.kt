@@ -127,6 +127,7 @@ public class SpeechToTextPlugin :
     private var previousPartialResults: Boolean = true
     private var previousListenMode: ListenMode = ListenMode.deviceDefault
     private var previousPauseFor: Int? = null
+    private var previousContextualStrings: List<String> = emptyList()
     private var lastFinalTime: Long = 0
     private var speechStartTime: Long = 0
     private var minRms: Float = 1000.0F
@@ -217,7 +218,9 @@ public class SpeechToTextPlugin :
                     }
                     val pauseFor =
                         call.argument<Int?>("pauseFor")
-                    startListening(result, localeId, partialResults, listenModeIndex, onDevice, pauseFor )
+                    val contextualStrings =
+                        call.argument<List<String>>("contextualStrings") ?: emptyList()
+                    startListening(result, localeId, partialResults, listenModeIndex, onDevice, pauseFor, contextualStrings )
                 }
                 "stop" -> stopListening(result)
                 "cancel" -> cancelListening(result)
@@ -281,7 +284,8 @@ public class SpeechToTextPlugin :
     }
 
     private fun startListening(result: Result, languageTag: String, partialResults: Boolean,
-                               listenModeIndex: Int, onDevice: Boolean, pauseFor: Int?) {
+                               listenModeIndex: Int, onDevice: Boolean, pauseFor: Int?,
+                               contextualStrings: List<String> = emptyList()) {
         if (sdkVersionTooLow() || isNotInitialized() || isListening()) {
             result.success(false)
             return
@@ -295,7 +299,7 @@ public class SpeechToTextPlugin :
         debugLog("Start listening")
 
         optionallyStartBluetooth()
-        setupRecognizerIntent(languageTag, partialResults, listenMode, onDevice, pauseFor )
+        setupRecognizerIntent(languageTag, partialResults, listenMode, onDevice, pauseFor, contextualStrings )
         handler.post {
             run {
                 speechRecognizer?.startListening(recognizerIntent)
@@ -651,16 +655,17 @@ public class SpeechToTextPlugin :
         debugLog("after setup intent")
     }
 
-    private fun setupRecognizerIntent(languageTag: String, partialResults: Boolean, listenMode: ListenMode, onDevice: Boolean, pauseFor: Int? ) {
+    private fun setupRecognizerIntent(languageTag: String, partialResults: Boolean, listenMode: ListenMode, onDevice: Boolean, pauseFor: Int?, contextualStrings: List<String> = emptyList() ) {
         debugLog("setupRecognizerIntent")
         if (previousRecognizerLang == null ||
                 previousRecognizerLang != languageTag ||
                 partialResults != previousPartialResults || previousListenMode != listenMode ||
-                previousPauseFor != pauseFor ) {
+                previousPauseFor != pauseFor || previousContextualStrings != contextualStrings ) {
             previousRecognizerLang = languageTag;
             previousPartialResults = partialResults
             previousListenMode = listenMode
             previousPauseFor = pauseFor
+            previousContextualStrings = contextualStrings
             handler.post {
                 run {
                     recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -691,6 +696,12 @@ public class SpeechToTextPlugin :
 
                         pauseFor?.also {
                             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, it)
+                        }
+
+                        if (contextualStrings.isNotEmpty() &&
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            putStringArrayListExtra(
+                                    RecognizerIntent.EXTRA_BIASING_STRINGS, ArrayList(contextualStrings))
                         }
                     }
                 }
